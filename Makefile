@@ -5,11 +5,11 @@ build:
 	env GOOS=wasip1 GOARCH=wasm go build -buildmode=c-shared -o ../filter.wasm main.go
 	@echo "Build complete!"
 
-# サービスを起動
+# Start services
 run: build
 	docker-compose up --build
 
-# テストを実行
+# Run tests
 test:
 	@echo "=== Health check (no auth required) ==="
 	curl -i http://localhost:10000/health
@@ -24,7 +24,7 @@ test:
 	@echo "\n\n=== Envoy admin stats ==="
 	curl -s http://localhost:9901/stats/prometheus | grep wasm
 
-# クリーンアップ
+# Cleanup
 clean:
 	docker-compose down
 	rm -f filter.wasm

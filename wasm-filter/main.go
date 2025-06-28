@@ -38,7 +38,7 @@ type httpAuthContext struct {
 }
 
 func (ctx *httpAuthContext) OnHttpRequestHeaders(numHeaders int, endOfStream bool) types.Action {
-	// パスを取得
+	// Get path
 	path, err := proxywasm.GetHttpRequestHeader(":path")
 	if err != nil {
 		proxywasm.LogErrorf("failed to get path: %v", err)
@@ -47,20 +47,20 @@ func (ctx *httpAuthContext) OnHttpRequestHeaders(numHeaders int, endOfStream boo
 
 	proxywasm.LogInfof("Processing request to path: %s", path)
 
-	// ヘルスチェックはスキップ
+	// Skip health check
 	if path == "/health" {
 		proxywasm.LogInfo("Health check endpoint, allowing request")
 		return types.ActionContinue
 	}
 
-	// Authorizationヘッダーを取得
+	// Get Authorization header
 	authHeader, err := proxywasm.GetHttpRequestHeader("authorization")
 	if err != nil || authHeader == "" {
 		proxywasm.LogWarn("Missing authorization header")
 		return ctx.denyRequest("Missing authorization header")
 	}
 
-	// 認証チェック
+	// Authentication check
 	if authHeader == "Bearer secret-token-123" {
 		proxywasm.LogInfo("Valid user token")
 		proxywasm.AddHttpRequestHeader("x-auth-user", "user")

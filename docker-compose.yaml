@@ -6,8 +6,8 @@ services:
     image: envoyproxy/envoy:v1.34-latest
     container_name: envoy
     ports:
-      - "10000:10000"  # API エンドポイント
-      - "9901:9901"    # Admin インターフェース
+      - "10000:10000"  # API endpoint
+      - "9901:9901"    # Admin interface
     volumes:
       - ./envoy.yaml:/etc/envoy/envoy.yaml
       - ./filter.wasm:/etc/envoy/filter.wasm
@@ -17,7 +17,7 @@ services:
     networks:
       - envoy-net
 
-  # バックエンドサービス
+  # Backend service
   backend:
     build:
       context: ./backend
