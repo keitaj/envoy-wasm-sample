@@ -1,177 +1,177 @@
-# Envoy WASM Authentication Filter Sample
+# WebAssembly (Wasm) Authentication Filter Sample for Envoy
 
-Go言語で実装したEnvoy Proxy用のWASM認証フィルタのサンプルです。
+A sample implementation of a Wasm authentication filter for Envoy Proxy written in Go.
 
-## 概要
+## Overview
 
-このプロジェクトは、Envoy ProxyのWASMフィルタ機能を使用して、HTTPリクエストの認証を行うサンプル実装です。
+This project demonstrates how to use Envoy Proxy's Wasm filter capabilities to implement HTTP request authentication.
 
-### アーキテクチャ
+### Architecture
 
 ```
-[Client] → [Envoy Proxy + WASM Filter] → [Backend Service]
+[Client] → [Envoy Proxy + Wasm Filter] → [Backend Service]
 ```
 
-- **Envoy Proxy**: リバースプロキシとして動作し、WASMフィルタを実行
-- **WASM Filter**: Go言語で実装された認証フィルタ
-- **Backend Service**: シンプルなHTTPサーバー
+- **Envoy Proxy**: Acts as a reverse proxy and executes the Wasm filter
+- **Wasm Filter**: Authentication filter implemented in Go
+- **Backend Service**: Simple HTTP server
 
-### 機能
+### Features
 
-- Bearerトークンによる認証
-- ヘルスチェックエンドポイントの認証スキップ
-- 認証成功時のユーザー情報ヘッダー追加
-- レスポンスへのフィルタ識別ヘッダー追加
+- Bearer token authentication
+- Skip authentication for health check endpoints
+- Add user information headers upon successful authentication
+- Add filter identification headers to responses
 
-## 必要な環境
+## Prerequisites
 
 - Docker
 - Docker Compose
-- Go 1.24以降
+- Go 1.24 or later
 
-## セットアップ手順
+## Setup Instructions
 
-1. リポジトリをクローン
+1. Clone the repository
 ```bash
-git clone <repository-url>
+git clone https://github.com/keitaj/envoy-wasm-sample.git
 cd envoy-wasm-sample
 ```
 
-2. WASMフィルタをビルドしてサービスを起動
+2. Build the Wasm filter and start services
 ```bash
 make run
 ```
 
-これにより以下の処理が実行されます：
-- Go言語のWASMフィルタをビルド
-- Dockerイメージのビルド
-- EnvoyとBackendサービスの起動
+This will:
+- Build the Go Wasm filter
+- Build Docker images
+- Start Envoy and Backend services
 
-## 動作確認手順
+## Testing
 
-### 個別のテスト実行
+### Individual Test Execution
 
-1. **ヘルスチェック（認証不要）**
+1. **Health check (no authentication required)**
 ```bash
 curl -i http://localhost:10000/health
 ```
 
-2. **認証なしでのアクセス（401エラー）**
+2. **Access without authentication (401 error)**
 ```bash
 curl -i http://localhost:10000/api/data
 ```
 
-3. **無効なトークンでのアクセス（401エラー）**
+3. **Access with invalid token (401 error)**
 ```bash
 curl -i -H "Authorization: Bearer invalid-token" http://localhost:10000/api/data
 ```
 
-4. **有効なユーザートークンでのアクセス（成功）**
+4. **Access with valid user token (success)**
 ```bash
 curl -i -H "Authorization: Bearer secret-token-123" http://localhost:10000/api/data
 ```
 
-5. **有効な管理者トークンでのアクセス（成功）**
+5. **Access with valid admin token (success)**
 ```bash
 curl -i -H "Authorization: Bearer admin-token-456" http://localhost:10000/api/data
 ```
 
-### 一括テスト実行
+### Run All Tests
 
 ```bash
 make test
 ```
 
-## システム挙動の解説
+## System Behavior
 
-### 認証フロー
+### Authentication Flow
 
-1. **リクエスト受信**
-   - クライアントからのHTTPリクエストがEnvoyに到着
-   - WASMフィルタの`OnHttpRequestHeaders`が呼び出される
+1. **Request Reception**
+   - HTTP request from client arrives at Envoy
+   - Wasm filter's `OnHttpRequestHeaders` is called
 
-2. **パスチェック**
-   - `/health`エンドポイントは認証をスキップ
-   - その他のパスは認証処理を実行
+2. **Path Check**
+   - `/health` endpoint skips authentication
+   - Other paths undergo authentication
 
-3. **認証処理**
-   - Authorizationヘッダーの存在確認
-   - Bearerトークンの検証
-   - 有効なトークン:
-     - `secret-token-123`: userロール
-     - `admin-token-456`: adminロール
+3. **Authentication Process**
+   - Check for Authorization header
+   - Validate Bearer token
+   - Valid tokens:
+     - `secret-token-123`: user role
+     - `admin-token-456`: admin role
 
-4. **認証成功時**
-   - `x-auth-user`ヘッダーにユーザー情報を追加
-   - リクエストをバックエンドサービスに転送
+4. **On Successful Authentication**
+   - Add user information to `x-auth-user` header
+   - Forward request to backend service
 
-5. **認証失敗時**
-   - 401 Unauthorizedレスポンスを返却
-   - JSONフォーマットでエラーメッセージを返す
+5. **On Authentication Failure**
+   - Return 401 Unauthorized response
+   - Return error message in JSON format
 
-### レスポンス処理
+### Response Processing
 
-すべてのレスポンスに`x-wasm-filter: go-auth`ヘッダーが追加され、WASMフィルタが動作していることを確認できます。
+All responses include the `x-wasm-filter: go-auth` header, confirming that the Wasm filter is functioning.
 
-### ログ出力
+### Logging
 
-WASMフィルタは以下のログを出力します：
-- プラグイン開始時: "plugin started"
-- リクエスト処理時: パス情報
-- 認証成功/失敗時: 詳細情報
+The Wasm filter outputs the following logs:
+- On plugin start: "plugin started"
+- On request processing: path information
+- On authentication success/failure: detailed information
 
-これらのログはEnvoyのログとして確認できます：
+These logs can be viewed in Envoy's logs:
 ```bash
 docker logs envoy
 ```
 
-## ディレクトリ構成
+## Directory Structure
 
 ```
 .
-├── Makefile              # ビルド・実行・テスト用のコマンド定義
-├── docker-compose.yaml   # Docker Compose設定
-├── envoy.yaml           # Envoy設定ファイル
-├── filter.wasm          # ビルドされたWASMファイル（自動生成）
-├── backend/             # バックエンドサービス
+├── Makefile              # Build, run, and test command definitions
+├── docker-compose.yaml   # Docker Compose configuration
+├── envoy.yaml           # Envoy configuration file
+├── filter.wasm          # Built Wasm file (auto-generated)
+├── backend/             # Backend service
 │   ├── Dockerfile
 │   └── main.go
-└── wasm-filter/         # WASMフィルタのソースコード
+└── wasm-filter/         # Wasm filter source code
     ├── go.mod
     ├── go.sum
     └── main.go
 ```
 
-## トラブルシューティング
+## Troubleshooting
 
-### WASMフィルタが読み込まれない場合
+### If Wasm Filter Fails to Load
 
-1. Envoyのログを確認
+1. Check Envoy logs
 ```bash
 docker logs envoy
 ```
 
-2. Go言語のバージョンを確認（1.24以降が必要）
+2. Verify Go version (1.24 or later required)
 ```bash
 go version
 ```
 
-3. WASMファイルが正しくビルドされているか確認
+3. Confirm Wasm file is built correctly
 ```bash
 ls -la filter.wasm
 ```
 
-### クリーンアップ
+### Cleanup
 
-サービスを停止し、ビルドファイルを削除：
+Stop services and remove build files:
 ```bash
 make clean
 ```
 
-## 技術詳細
+## Technical Details
 
 - **Envoy**: v1.34-latest
-- **Go**: 1.24（wasip1/wasm target）
-- **proxy-wasm-go-sdk**: Envoy用WASMプラグイン開発SDK
+- **Go**: 1.24 (wasip1/wasm target)
+- **proxy-wasm-go-sdk**: Wasm plugin development SDK for Envoy
 
-WASMフィルタは`init()`関数でVMコンテキストを設定し、リクエストごとにHTTPコンテキストを作成して処理を行います。
+The Wasm filter sets up the VM context in the `init()` function and creates an HTTP context for each request to handle processing.
