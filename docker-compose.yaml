@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  # Envoy Proxy
+  envoy:
+    image: envoyproxy/envoy:v1.34-latest
+    container_name: envoy
+    ports:
+      - "10000:10000"  # API エンドポイント
+      - "9901:9901"    # Admin インターフェース
+    volumes:
+      - ./envoy.yaml:/etc/envoy/envoy.yaml
+      - ./filter.wasm:/etc/envoy/filter.wasm
+    command: ["/usr/local/bin/envoy", "-c", "/etc/envoy/envoy.yaml", "-l", "debug"]
+    depends_on:
+      - backend
+    networks:
+      - envoy-net
+
+  # バックエンドサービス
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: backend
+    networks:
+      - envoy-net
+
+networks:
+  envoy-net:
+    driver: bridge
